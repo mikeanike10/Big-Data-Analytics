@@ -28,7 +28,6 @@ def isfloat(value):
          return False
 
 #Function - Cleaning
-#For example, remove lines if they don’t have 16 values and 
 # checking if the trip distance and fare amount is a float number
 # checking if the trip duration is more than a minute, trip distance is more than 0 miles, 
 # fare amount and total amount are more than 0 dollars
@@ -53,8 +52,7 @@ if __name__ == "__main__":
                 .filter(correctRows)\
                     .cache()
 
-    #Task 1
-    #Your code goes here
+    #Task 1 list top 20 drivers by trip amount
     def addToList(x, y):
         x.append(y)
         return x
@@ -70,8 +68,7 @@ if __name__ == "__main__":
     rddtask1=sc.parallelize(rddtask1)
     rddtask1.coalesce(1).saveAsTextFile(sys.argv[2])
 
-    #Task 2
-    #Your code goes here
+    #Task 2 Top ten drivers by money made
     rddtask2=rdd.map(lambda x:(x[1],x[4],x[16])) \
         .map(lambda x:(x[0],x[1]/60,x[2])) \
             .map(lambda x:(x[0],x[2]/x[1])) \
@@ -83,12 +80,6 @@ if __name__ == "__main__":
     rddtask2=sc.parallelize(rddtask2)
     rddtask2.coalesce(1).saveAsTextFile(sys.argv[3])
 
-
-    #Task 3 - Optional 
-    #Your code goes here
-
-    #Task 4 - Optional 
-    #Your code goes here
 
 
     sc.stop()
