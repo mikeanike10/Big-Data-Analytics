@@ -74,7 +74,6 @@ if __name__ == "__main__":
     wikiCats=wikiCategoryLinks.map(lambda x: x.split(",")).map(lambda x: (x[0].replace('"', ''), x[1].replace('"', '') ))
 
     # Assumption: Each document is stored in one line of the text file
-    # We need this count later ... 
     numberOfDocs = wikiPages.count()
     print(numberOfDocs)
 
@@ -152,7 +151,6 @@ if __name__ == "__main__":
     print(allDocsAsNumpyArrays.take(3))
 
 
-    # Now, create a version of allDocsAsNumpyArrays where, in the array,
     # every entry is either zero or one.
     # A zero means that the word does not occur,
     # and a one means that it does.
@@ -174,7 +172,7 @@ if __name__ == "__main__":
     # Finally, convert all of the tf vectors in allDocsAsNumpyArrays to tf * idf vectors
     allDocsAsNumpyArraysTFidf = allDocsAsNumpyArrays.map(lambda x: (x[0], np.multiply(x[1], idfArray)))
 
-    # Include this print out in your assignment report
+
     print(allDocsAsNumpyArraysTFidf.take(2))
 
 
@@ -210,13 +208,11 @@ if __name__ == "__main__":
         numTimes = docIDwithWikiCat.reduceByKey(lambda x,y:x+y)
         
         # Return the top 1 of them.
-        # Ask yourself: Why we are using twice top() operation here?
         return numTimes.top(k, lambda x: x[1])
 
 
     
     task2prediction1 = getPrediction('Sport Basketball Volleyball Soccer', 10)
-    # Include this print out in your assignment report
     print("Prediction for Sport Basketball Volleyball Soccer:", task2prediction1)
 
     task2prediction1result = sc.parallelize(task2prediction1)
@@ -225,7 +221,6 @@ if __name__ == "__main__":
 
 
     task2prediction2 = getPrediction('What is the capital city of Australia?', 10)
-    # Include this print out in your assignment report
     print("Prediction for What is the capital city of Australia?:", task2prediction2)
 
     task2prediction2result = sc.parallelize(task2prediction2)
@@ -234,7 +229,6 @@ if __name__ == "__main__":
 
 
     task2prediction3 = getPrediction('How many goals Vancouver score last year?', 10)
-    # Include this print out in your assignment report
     print("Prediction for How many goals Vancouver score last year?:", task2prediction3)
 
     task2prediction3result = sc.parallelize(task2prediction3)
@@ -242,10 +236,11 @@ if __name__ == "__main__":
 
 
     sc.stop()
-    # Congradulations, you have implemented a prediction system based on Wikipedia data. 
+
     # You can use this system to generate automated Tags or Categories for any kind of text 
     # that you put in your query.
     # This data model can predict categories for any input text. 
+
 
 
 
