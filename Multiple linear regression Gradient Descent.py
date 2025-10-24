@@ -3,7 +3,7 @@
 """
 Created on Tue Sep 26 11:16:48 2023
 
-@author: arthurglass
+@author: Michael Glass
 """
 
 from __future__ import print_function
@@ -35,7 +35,6 @@ def isfloat(value):
          return False
 
 #Function - Cleaning
-#For example, remove lines if they don’t have 16 values and 
 # checking if the trip distance and fare amount is a float number
 # checking if the trip duration is more than a minute, trip distance is more than 0.1 miles, 
 # fare amount and total amount are more than 0.1 dollars
@@ -60,8 +59,8 @@ if __name__ == "__main__":
         .rdd.map(tuple)\
             .filter(correctRows)\
                 .cache()
-                
-    #Your code goes here
+
+    #start
     rdd3=rdd.map(lambda x:(np.array([x[4],x[5],x[11],x[15]]),x[16])).cache()
     theta=np.zeros(4)
     b=0
