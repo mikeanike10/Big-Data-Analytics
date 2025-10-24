@@ -3,7 +3,7 @@
 """
 Created on Mon Sep 25 15:10:14 2023
 
-@author: arthurglass
+@author: Michael Glass
 """
 
 from __future__ import print_function
@@ -35,7 +35,6 @@ def isfloat(value):
          return False
 
 #Function - Cleaning
-#For example, remove lines if they don’t have 16 values and 
 # checking if the trip distance and fare amount is a float number
 # checking if the trip duration is more than a minute, trip distance is more than 0.1 miles, 
 # fare amount and total amount are more than 0.1 dollars
