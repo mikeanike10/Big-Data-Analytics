@@ -1,0 +1,227 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Oct  9 16:22:34 2023
+
+@author: arthurglass
+"""
+
+from __future__ import print_function
+
+import re
+import sys
+import numpy as np
+from pyspark import SparkContext
+from pyspark.sql import SparkSession
+from pyspark.ml.feature import CountVectorizer, Tokenizer, StopWordsRemover, IDF, ChiSqSelector
+from pyspark.ml import Pipeline
+from datetime import datetime
+from pyspark.ml.classification import LogisticRegression, LinearSVC
+
+# If needed, use this helper function
+# You can implement your own version if you find it more appropriate 
+
+if __name__ == "__main__":
+
+    sc = SparkContext(appName="Assignment-5")
+    spark = SparkSession(sc)
+	# Use this code to read the data
+    ##TRAIN
+    # Use this code to reade the data
+    corpus = sc.textFile(sys.argv[1], 1)
+    keyAndText = corpus.map(lambda x : (x[x.index('id="') + 4 : x.index('" url=')], x[x.index('">') + 2:][:-6])).map(lambda x: (x[0], int(x[0].startswith("AU")),x[1]))   
+    # Spark DataFrame to be used wiht MLlib 
+    df = spark.createDataFrame(keyAndText).toDF("id","label","text").cache()
+    
+    
+    ##TEST
+    #Use this code to read the data
+    corpust = sc.textFile(sys.argv[2], 1)
+    keyAndTextt = corpust.map(lambda x : (x[x.index('id="') + 4 : x.index('" url=')], x[x.index('">') + 2:][:-6])).map(lambda x: (x[0], int(x[0].startswith("AU")),x[1]))   
+    # Spark DataFrame to be used wiht MLlib 
+    test = spark.createDataFrame(keyAndTextt).toDF("id","label","text").cache()
+    
+    #task 1
+    
+       
+    tokenizer=Tokenizer(inputCol="text", outputCol="words")
+    remover=StopWordsRemover(inputCol=tokenizer.getOutputCol(),outputCol="filtered")
+    countvector=CountVectorizer(inputCol=remover.getOutputCol(),outputCol="rawfeatures",vocabSize=5000)
+    idf=IDF(inputCol=countvector.getOutputCol(),outputCol="features")
+    pipeline=Pipeline(stages=[tokenizer,remover,countvector,idf])
+    
+    model=pipeline.fit(df).transform(df).select("filtered").rdd.map(tuple)\
+        .flatMap(lambda x:[(y,1) for y in x[0]])\
+            .reduceByKey(lambda x, y: x+y)\
+                .top(10,lambda x:x[1])
+    print(model)
+    
+    
+    
+    
+    starttime=datetime.now()
+    train=pipeline.fit(df).transform(df).cache()
+   
+    test2=pipeline.fit(test).transform(test).cache()
+    print(datetime.now() - starttime)
+    
+    
+    ### Task 2
+    ### Build your learning model using Logistic Regression
+    lr=LogisticRegression(featuresCol="features",labelCol="label",maxIter=20)
+    lrpipeline=Pipeline(stages=[tokenizer,remover,countvector,idf,lr])
+    
+    #model fit
+    starttime=datetime.now()
+    model=lrpipeline.fit(df)
+    fittime=datetime.now()-starttime
+    
+    #testing the model
+    starttime=datetime.now()
+    prediction=model.transform(test)
+    testtime=datetime.now()-starttime
+    
+    #evaluate the model
+    starttime=datetime.now()
+    selected=prediction.select("label","prediction").rdd.map(tuple).cache()
+    tp=selected.map(lambda x: 1 if (x[0]==1) and (x[1]==1) else 0).reduce(lambda x,y:x+y)    
+    fp=selected.map(lambda x: 1 if (x[0]==0) and (x[1]==1) else 0).reduce(lambda x,y:x+y)  
+    tn=selected.map(lambda x: 1 if (x[0]==0) and (x[1]==0) else 0).reduce(lambda x,y:x+y)  
+    fn=selected.map(lambda x: 1 if (x[0]==1) and (x[1]==0) else 0).reduce(lambda x,y:x+y) 
+    evaltime=datetime.now()-starttime
+    
+    print("\nPerformance Metrics: Logisitic Regression")
+    print("Precision:", tp/(tp+fp) )
+    print("Recall:", tp/(tp+fn))
+    print("F1:", tp/(tp+0.5*(fp+fn)))
+    print("Confusion Matrix:")
+    print(f" TP:{tp:6} FP:{fp:6} ")
+    print(f" FN:{fn:6} TN:{tn:6} ")
+    print(f'The total time needed to train the model: {fittime} secs\nEvaluate the model: {evaltime} secs\nTest the model: {testtime} secs\nTotal Time: {fittime+testtime+evaltime} secs')
+
+    ### Task 3
+    ### Build your learning model using SVM
+    svm=LinearSVC(featuresCol="features",labelCol="label",maxIter=20)
+    svmpipeline=Pipeline(stages=[tokenizer,remover,countvector,idf,svm])
+    
+    #model fit
+    starttime=datetime.now()
+    model=svmpipeline.fit(df)
+    fittime=datetime.now()-starttime
+    
+    #testing the model
+    starttime=datetime.now()
+    prediction=model.transform(test)
+    testtime=datetime.now()-starttime
+    
+    #evaluating the model
+    starttime=datetime.now()
+    selected=prediction.select("label","prediction").rdd.map(tuple).cache()
+    tp=selected.map(lambda x: 1 if (x[0]==1) and (x[1]==1) else 0).reduce(lambda x,y:x+y)    
+    fp=selected.map(lambda x: 1 if (x[0]==0) and (x[1]==1) else 0).reduce(lambda x,y:x+y)  
+    tn=selected.map(lambda x: 1 if (x[0]==0) and (x[1]==0) else 0).reduce(lambda x,y:x+y)  
+    fn=selected.map(lambda x: 1 if (x[0]==1) and (x[1]==0) else 0).reduce(lambda x,y:x+y) 
+    evaltime=datetime.now()-starttime
+
+
+
+    print("\nPerformance Metrics: SVM")
+    print("Precision:", tp/(tp+fp) )
+    print("Recall:", tp/(tp+fn))
+    print("F1:", tp/(tp+0.5*(fp+fn)))
+    print("Confusion Matrix:")
+    print(f" TP:{tp:6} fp:{fp:6} ")
+    print(f" TP:{fn:6} fp:{tn:6} ")
+    print(f'The total time needed to train the model: {fittime} secs\nEvaluate the model: {evaltime} secs\nTest the model: {testtime} secs\nTotal Time: {fittime+testtime+evaltime} secs')
+
+    ### Task 4
+    ### Rebuild your learning models using 200 words instead of 5000
+    
+    #lr with feature selection
+    selector=ChiSqSelector(numTopFeatures=200,featuresCol="features",labelCol="label")
+    lr=LogisticRegression(featuresCol=selector.getOutputCol(),labelCol="label",maxIter=20)
+    lrpipeline=Pipeline(stages=[tokenizer,remover,countvector,idf,selector,lr])
+
+    #model
+    starttime=datetime.now()
+    model=lrpipeline.fit(df)
+    fittime=datetime.now()-starttime
+   
+    #testing the model
+    starttime=datetime.now()
+    prediction=model.transform(test)
+    testtime=datetime.now()-starttime
+     
+    #evaluate the model
+    starttime=datetime.now()
+    selected=prediction.select("label","prediction").rdd.map(tuple).cache()
+    tp=selected.map(lambda x: 1 if (x[0]==1) and (x[1]==1) else 0).reduce(lambda x,y:x+y)    
+    fp=selected.map(lambda x: 1 if (x[0]==0) and (x[1]==1) else 0).reduce(lambda x,y:x+y)  
+    tn=selected.map(lambda x: 1 if (x[0]==0) and (x[1]==0) else 0).reduce(lambda x,y:x+y)  
+    fn=selected.map(lambda x: 1 if (x[0]==1) and (x[1]==0) else 0).reduce(lambda x,y:x+y) 
+    evaltime=datetime.now()-starttime
+     
+    print("\nPerformance Metrics: Logisitic Regression")
+    print("Precision:", tp/(tp+fp) )
+    print("Recall:", tp/(tp+fn))
+    print("F1:", tp/(tp+0.5*(fp+fn)))
+    print("Confusion Matrix:")
+    print(f" TP:{tp:6} fp:{fp:6} ")
+    print(f" TP:{fn:6} fp:{tn:6} ")
+    print(f'The total time needed to train the model: {fittime} secs\nEvaluate the model: {evaltime} secs\nTest the model: {testtime} secs\nTotal Time: {fittime+testtime+evaltime} secs')
+
+    #svm
+    selector=ChiSqSelector(numTopFeatures=200,featuresCol="features",labelCol="label")
+    svm=LinearSVC(featuresCol=selector.getOutputCol(),labelCol="label",maxIter=20)
+    svmpipeline=Pipeline(stages=[tokenizer,remover,countvector,idf,selector,svm])
+     
+    #model fit
+    starttime=datetime.now()
+    model=svmpipeline.fit(df)
+    fittime=datetime.now()-starttime
+     
+    #testing the model
+    starttime=datetime.now()
+    prediction=model.transform(test)
+    testtime=datetime.now()-starttime
+     
+    #evaluating the model
+    starttime=datetime.now()
+    selected=prediction.select("label","prediction").rdd.map(tuple).cache()    
+    tp=selected.map(lambda x: 1 if (x[0]==1) and (x[1]==1) else 0).reduce(lambda x,y:x+y)    
+    fp=selected.map(lambda x: 1 if (x[0]==0) and (x[1]==1) else 0).reduce(lambda x,y:x+y)  
+    tn=selected.map(lambda x: 1 if (x[0]==0) and (x[1]==0) else 0).reduce(lambda x,y:x+y)  
+    fn=selected.map(lambda x: 1 if (x[0]==1) and (x[1]==0) else 0).reduce(lambda x,y:x+y) 
+    evaltime=datetime.now()-starttime
+
+
+
+    print("\nPerformance Metrics: SVM")
+    print("Precision:", tp/(tp+fp) )
+    print("Recall:", tp/(tp+fn))
+    print("F1:", tp/(tp+0.5*(fp+fn)))
+    print("Confusion Matrix:")
+    print(f" TP:{tp:6} fp:{fp:6} ")
+    print(f" TP:{fn:6} fp:{tn:6} ")
+    print(f'The total time needed to train the model: {fittime} secs\nEvaluate the model: {evaltime} secs\nTest the model: {testtime} secs\nTotal Time: {fittime+testtime+evaltime} secs')
+
+
+
+    sc.stop()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
