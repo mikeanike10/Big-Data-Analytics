@@ -3,7 +3,7 @@
 """
 Created on Tue Oct  3 11:21:51 2023
 
-@author: arthurglass
+@author: Michael Glass
 """
 
 from __future__ import print_function
@@ -32,7 +32,7 @@ def indexofword(word):
 if __name__ == "__main__":
     sc = SparkContext(appName="Assignment-4")
     
-    ### Task 1
+   
 	### Data Preparation
     corpus = sc.textFile(sys.argv[1],1)
     keyAndText = corpus.map(lambda x :(x[x.index('id="')+4:x.index('" url=')],x[x.index('">')+2:][:-6]))
@@ -61,7 +61,7 @@ if __name__ == "__main__":
     indexofword("car")
     indexofword("in")
     
-    ### Task 2
+    
 	### Build your learning model
     
     #TF vector
