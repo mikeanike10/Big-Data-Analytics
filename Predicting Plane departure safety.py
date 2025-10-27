@@ -3,7 +3,7 @@
 """
 Created on Thu Oct 12 17:39:00 2023
 
-@author: arthurglass
+@author: Michael Glass
 """
 
 from __future__ import print_function
